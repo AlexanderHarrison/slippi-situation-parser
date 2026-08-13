@@ -47,8 +47,11 @@ pub fn parse_file(slp: &[u8]) -> SlpResult<Game> {
     let RawHeaderRet { event_sizes_offset, metadata_offset } = parse_raw_header(slp)?;
     let EventSizesRet { game_start_offset, event_sizes } = event_sizes(slp, event_sizes_offset)?;
     let game_start_size = event_sizes[GAME_START as usize] as usize + 1;
+    if game_start_offset+game_start_size > slp.len() {
+        return Err(SlpError::InvalidFile(InvalidLocation::GameStart))
+    } 
     let game_start = parse_game_start(&slp[game_start_offset..][..game_start_size])?;
-    
+
     let metadata = if metadata_offset == 0 {
         // occasionally the raw len is written incorrectly. Just skip parsing in this case.
         Metadata::NULL
@@ -703,6 +706,11 @@ pub fn parse_file_info(reader: &mut (impl std::io::Read + std::io::Seek)) -> Slp
     let RawHeaderRet { event_sizes_offset, metadata_offset } = parse_raw_header(&buf)?;
     let EventSizesRet { game_start_offset, event_sizes } = event_sizes(&buf, event_sizes_offset)?;
     let game_start_size = event_sizes[GAME_START as usize] as usize + 1;
+    
+    if game_start_offset+game_start_size > buf.len() {
+        return Err(SlpError::InvalidFile(InvalidLocation::GameStart))
+    } 
+    
     let game_start = parse_game_start(&buf[game_start_offset..][..game_start_size])?;
     
     let metadata = if metadata_offset != 0 {
